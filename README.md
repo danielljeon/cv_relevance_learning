@@ -46,7 +46,7 @@ pip install -r requirements.txt
 Download the YOLOv5 ONNX file in the root directory:
 
 ```shell
-wget https://github.com/ultralytics/yolov5/releases/download/v6.0/yolov5n.onnx
+wget https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.onnx
 ```
 
 ### 2.3 Running the Code
