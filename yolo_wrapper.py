@@ -28,6 +28,7 @@ class YOLO:
         img = img[:, :, ::-1]  # BGR -> RGB
         img = img.transpose(2, 0, 1).astype(np.float32) / 255.0
         img = np.expand_dims(img, 0)
+        img = img.astype(np.float16)
 
         preds = self.session.run([self.output_name], {self.input_name: img})[0]
 
