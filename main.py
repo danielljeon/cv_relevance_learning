@@ -1,4 +1,5 @@
 import datetime
+import os
 import time
 from collections import deque
 
@@ -16,6 +17,9 @@ BUFFER_SIZE = int(BUFFER_SECONDS * FPS)
 
 POSITIVE_LABEL = 0
 NEGATIVE_LABEL = 1
+
+# Path for saving training data.
+MODEL_PATH = "relevance_training_data.npz"
 
 # Memory.
 buffer = deque(maxlen=BUFFER_SIZE)  # (timestamp, feature_vector).
@@ -59,6 +63,39 @@ def update_models():
     nb_model = nb
     knn_model = knn
     print(f"[INFO] Models updated. Samples: {len(X_train)}")
+
+
+def save_training_data():
+    """Save X_train and y_train to disk."""
+    if not X_train:
+        print("[SAVE] No training data to save.")
+        return
+
+    X = np.array(X_train)
+    y = np.array(y_train)
+    np.savez(MODEL_PATH, X=X, y=y)
+    print(f"[SAVE] Training data saved to {MODEL_PATH}")
+
+
+def load_training_data():
+    """Load X_train and y_train from disk if available, then rebuild models."""
+    global X_train, y_train
+    if not os.path.exists(MODEL_PATH):
+        print("[LOAD] No previous training data found. Starting fresh.")
+        return
+
+    try:
+        data = np.load(MODEL_PATH, allow_pickle=True)
+        X = data["X"]
+        y = data["y"]
+        X_train = [x for x in X]
+        y_train = [int(label) for label in y]
+        print(
+            f"[LOAD] Loaded model from {MODEL_PATH} (samples: {len(X_train)})"
+        )
+        update_models()
+    except Exception as e:
+        print(f"[LOAD] Failed to load training data: {e}")
 
 
 def handle_positive_press():
@@ -123,6 +160,9 @@ def notify(score):
 def main():
     global LAST_NOTIFIED_FEATS
 
+    # Try to load previous training data and rebuild models.
+    load_training_data()
+
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FPS, FPS)
 
@@ -131,7 +171,8 @@ def main():
     print("System started.")
     print("Press '1' to train *positive* examples.")
     print("Press 'a' to train *negative* examples.")
-    print("Press 'q' to quit.")
+    print("Press 's' to save training data.")
+    print("Press 'q' to quit (auto-save).")
 
     try:
         while True:
@@ -179,8 +220,12 @@ def main():
             elif key == ord("a"):
                 handle_negative_press()
 
+            elif key == ord("s"):
+                save_training_data()
+
             elif key == ord("q"):
-                print("Quit.")
+                print("Quit. Saving training data...")
+                save_training_data()
                 break
 
             # Notification.
