@@ -62,7 +62,7 @@ def update_models(n_new: int | None = None):
     # Naive Bayes: online / incremental.
     if nb_model is None or n_new is None or n_new <= 0:
         # Cold start or full rebuild: fit on all data.
-        nb_model_local = GaussianNB()
+        nb_model_local = GaussianNB(priors=[0.5, 0.5])
         nb_model_local.partial_fit(
             X, y, classes=np.array([POSITIVE_LABEL, NEGATIVE_LABEL])
         )
