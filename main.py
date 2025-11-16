@@ -7,8 +7,8 @@ import numpy as np
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 
+from notify import call_notify, init_notify
 from yolo_wrapper import YOLO
-from notify import call_notify
 
 # Constants.
 BUFFER_SECONDS = 2.0
@@ -154,6 +154,9 @@ def predict_notifications(detections):
 
 def main():
     global LAST_NOTIFIED_FEATS
+
+    # Initialize notification service/properties.
+    init_notify()
 
     # Try to load previous training data and rebuild models.
     load_training_data()
