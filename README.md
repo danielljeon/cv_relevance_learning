@@ -29,7 +29,9 @@ machine learning university course.
 
 ### 1.1 Block Diagram
 
-![cv_relevance_learning.drawio.png](docs/cv_relevance_learning.drawio.png)
+<div align="center">
+  <img src="docs/cv_relevance_learning.drawio.png" width="50%">
+</div>
 
 > Drawio file
 > here: [cv_relevance_learning.drawio](docs/cv_relevance_learning.drawio).
