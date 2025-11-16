@@ -1,4 +1,3 @@
-import datetime
 import os
 import time
 from collections import deque
@@ -9,6 +8,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 
 from yolo_wrapper import YOLO
+from notify import call_notify
 
 # Constants.
 BUFFER_SECONDS = 2.0
@@ -152,11 +152,6 @@ def predict_notifications(detections):
     return results
 
 
-def notify(score):
-    now = datetime.datetime.now()
-    print(f"{now} Relevance predicted (score={score:.2f})")
-
-
 def main():
     global LAST_NOTIFIED_FEATS
 
@@ -234,7 +229,7 @@ def main():
 
             for score, det, feat in notify_items:
                 LAST_NOTIFIED_FEATS.append(feat)
-                notify(score)
+                call_notify(score)
 
             time.sleep(max(0.0, 1.0 / FPS - 0.001))
 
