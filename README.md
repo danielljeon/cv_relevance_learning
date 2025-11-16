@@ -13,6 +13,7 @@ machine learning university course.
 <!-- TOC -->
 * [cv_relevance_learning](#cv_relevance_learning)
   * [1 Overview](#1-overview)
+    * [1.1 Block Diagram](#11-block-diagram)
   * [2 Setup](#2-setup)
     * [2.1 Install Python (pip) Packages](#21-install-python-pip-packages)
     * [2.2 Download YOLO ONNX](#22-download-yolo-onnx)
@@ -25,6 +26,14 @@ machine learning university course.
 ---
 
 ## 1 Overview
+
+### 1.1 Block Diagram
+
+![cv_relevance_learning.drawio.png](docs/cv_relevance_learning.drawio.png)
+
+> Drawio file
+> here: [cv_relevance_learning.drawio](docs/cv_relevance_learning.drawio).
+
 
 ---
 
