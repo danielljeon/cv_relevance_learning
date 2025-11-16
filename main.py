@@ -45,8 +45,13 @@ def extract_features(det):
     return np.array([class_id, area, center_y], dtype=float)
 
 
-def update_models():
-    """Update online relevance prediction model."""
+def update_models(n_new: int | None = None):
+    """Update online relevance prediction model.
+
+    If n_new is provided and a Naive Bayes model already exists, only the last
+    n_new samples are used to incrementally update NB via partial_fit. kNN is
+    still re-fit on the full dataset.
+    """
     global nb_model, knn_model
     if len(X_train) < 5:
         return
@@ -54,14 +59,25 @@ def update_models():
     X = np.array(X_train)
     y = np.array(y_train)
 
-    nb = GaussianNB()
-    nb.fit(X, y)
+    # Naive Bayes: online / incremental.
+    if nb_model is None or n_new is None or n_new <= 0:
+        # Cold start or full rebuild: fit on all data.
+        nb_model_local = GaussianNB()
+        nb_model_local.partial_fit(
+            X, y, classes=np.array([POSITIVE_LABEL, NEGATIVE_LABEL])
+        )
+        nb_model = nb_model_local
+    else:
+        # Incremental update on just the new samples.
+        X_new = X[-n_new:]
+        y_new = y[-n_new:]
+        nb_model.partial_fit(X_new, y_new)
 
+    # kNN: still trained on full dataset (lazy, but dataset is small).
     knn = KNeighborsClassifier(n_neighbors=3)
     knn.fit(X, y)
-
-    nb_model = nb
     knn_model = knn
+
     print(f"[INFO] Models updated. Samples: {len(X_train)}")
 
 
@@ -105,7 +121,10 @@ def handle_positive_press():
         X_train.append(feat)
         y_train.append(POSITIVE_LABEL)
         added += 1
-    update_models()
+
+    # Pass number of new samples for online NB update.
+    update_models(added)
+
     print(f"[TRAIN] + Positive: added {added} samples")
 
 
@@ -122,8 +141,10 @@ def handle_negative_press():
         y_train.append(NEGATIVE_LABEL)
         added += 1
 
-    update_models()
+    # Pass number of new samples for online NB update.
+    update_models(added)
     LAST_NOTIFIED_FEATS = []
+
     print(f"[TRAIN] - Negative: added {added} samples")
 
 
