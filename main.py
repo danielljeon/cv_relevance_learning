@@ -253,7 +253,9 @@ def main():
 
             for score, det, feat in notify_items:
                 LAST_NOTIFIED_FEATS.append(feat)
-                call_notify(score)
+
+                # Pass score and rough location into notification.
+                call_notify(score, det.x)
 
             time.sleep(max(0.0, 1.0 / FPS - 0.001))
 

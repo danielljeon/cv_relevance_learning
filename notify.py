@@ -8,6 +8,16 @@ _tts_engine = None
 _last_notified = 0
 
 
+def describe_horizontal_location(det_x: float) -> str:
+    """Map normalized center-x (0..1) to a coarse location label."""
+    if det_x < 1.0 / 3.0:
+        return "left"
+    elif det_x > 2.0 / 3.0:
+        return "right"
+    else:
+        return "center"
+
+
 def init_notify():
     global _tts_engine
 
@@ -16,7 +26,7 @@ def init_notify():
     _tts_engine.runAndWait()
 
 
-def call_notify(score: float):
+def call_notify(score: float, location_x: float | None = None):
     global _last_notified
     global _tts_engine
 
@@ -27,14 +37,23 @@ def call_notify(score: float):
         now = time.time()
 
         # Always trigger developer notification.
-        print(f"{now} Predicted relevant (score={score:.2f})")
+        print(
+            f"{now} Predicted relevant (score={score:.2f}, "
+            f"location_x={location_x})"
+        )
 
         # Notify at most once per fixed time.
         if now - _last_notified < NOTIFICATION_WINDOW_SECONDS:
             return  # Too soon, skip.
 
         else:  # Actually trigger a user notification.
-            _tts_engine.say("Notify.")
+            if location_x:
+                phrase = f"Notify, {describe_horizontal_location(location_x)}."
+            else:
+                phrase = "Notify."
+
+            _tts_engine.say(phrase)
+            _tts_engine.runAndWait()
 
         _last_notified = now
 
