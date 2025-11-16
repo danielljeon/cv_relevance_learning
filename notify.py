@@ -2,7 +2,7 @@ import time
 
 import pyttsx3
 
-NOTIFICATION_WINDOW_SECONDS = 10
+NOTIFICATION_WINDOW_SECONDS = 3
 
 _tts_engine = None
 _last_notified = 0
@@ -39,7 +39,7 @@ def call_notify(score: float, location_x: float | None = None):
         # Always trigger developer notification.
         print(
             f"{now} Predicted relevant (score={score:.2f}, "
-            f"location_x={location_x})"
+            f"location_x={location_x}), t_delta={now - _last_notified:.2f}s)"
         )
 
         # Notify at most once per fixed time.
@@ -47,7 +47,7 @@ def call_notify(score: float, location_x: float | None = None):
             return  # Too soon, skip.
 
         else:  # Actually trigger a user notification.
-            if location_x:
+            if location_x is not None:
                 phrase = f"Notify, {describe_horizontal_location(location_x)}."
             else:
                 phrase = "Notify."
