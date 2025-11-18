@@ -21,6 +21,14 @@ NEGATIVE_LABEL = 1
 # Path for saving training data.
 MODEL_PATH = "relevance_training_data.npz"
 
+# Live performance counters.
+tp_count = 0  # True positives: notified and user confirms.
+fp_count = 0  # False positives: notified and user presses.
+fn_count = 0  # False negatives: user presses with no recent notification.
+last_notification_time = 0.0
+last_notification_active = False
+FEEDBACK_WINDOW_SECONDS = 5.0  # Time window for false positive lookback.
+
 # Memory.
 buffer = deque(maxlen=BUFFER_SIZE)  # (timestamp, feature_vector).
 
@@ -30,7 +38,24 @@ y_train = []
 nb_model = None
 knn_model = None
 
-LAST_NOTIFIED_FEATS = []
+last_notified_feats = []
+
+
+def print_metrics():
+    """Print precision/recall based on tp_count/fp_count/fn_count."""
+    global tp_count, fp_count, fn_count
+
+    precision = (
+        tp_count / (tp_count + fp_count) if (tp_count + fp_count) > 0 else 0.0
+    )
+    recall = (
+        tp_count / (tp_count + fn_count) if (tp_count + fn_count) > 0 else 0.0
+    )
+
+    print(
+        f"[METRICS] tp_count={tp_count} fp_count={fp_count} fn_count={fn_count} "
+        f"precision={precision:.2f} recall={recall:.2f}"
+    )
 
 
 def extract_features(det):
@@ -130,20 +155,20 @@ def handle_positive_press():
 
 def handle_negative_press():
     """Add negative samples to training set."""
-    global LAST_NOTIFIED_FEATS
-    if not LAST_NOTIFIED_FEATS:
+    global last_notified_feats
+    if not last_notified_feats:
         print("[WARN] No notifications to tag as negative.")
         return
 
     added = 0
-    for feat in LAST_NOTIFIED_FEATS:
+    for feat in last_notified_feats:
         X_train.append(feat)
         y_train.append(NEGATIVE_LABEL)
         added += 1
 
     # Pass number of new samples for online NB update.
     update_models(added)
-    LAST_NOTIFIED_FEATS = []
+    last_notified_feats = []
 
     print(f"[TRAIN] - Negative: added {added} samples")
 
@@ -174,7 +199,12 @@ def predict_notifications(detections):
 
 
 def main():
-    global LAST_NOTIFIED_FEATS
+    global last_notified_feats
+    global last_notification_time
+    global last_notification_active
+    global tp_count
+    global fn_count
+    global fp_count
 
     # Initialize notification service/properties.
     init_notify()
@@ -232,12 +262,41 @@ def main():
 
             # Key handling.
             key = cv2.waitKey(1) & 0xFF
+            now = time.time()
 
             if key == ord("1"):
+                # User says: "this was relevant".
+                # If there's a recent notification, count it as tp_count,
+                # otherwise fn_count.
+                if (
+                    last_notification_active
+                    and (now - last_notification_time)
+                    <= FEEDBACK_WINDOW_SECONDS
+                ):
+                    tp_count += 1
+                    last_notification_active = (
+                        False  # Consume this notification.
+                    )
+                else:
+                    fn_count += 1
+
                 handle_positive_press()
+                print_metrics()
 
             elif key == ord("a"):
+                # User says: "that last notification was wrong".
+                if (
+                    last_notification_active
+                    and (now - last_notification_time)
+                    <= FEEDBACK_WINDOW_SECONDS
+                ):
+                    fp_count += 1
+                    last_notification_active = (
+                        False  # Consume this notification.
+                    )
+
                 handle_negative_press()
+                print_metrics()
 
             elif key == ord("s"):
                 save_training_data()
@@ -249,13 +308,17 @@ def main():
 
             # Notification.
             notify_items = predict_notifications(detections)
-            LAST_NOTIFIED_FEATS = []
+            last_notified_feats = []
 
             for score, det, feat in notify_items:
-                LAST_NOTIFIED_FEATS.append(feat)
+                last_notified_feats.append(feat)
 
-                # Pass score and rough location into notification.
-                call_notify(score, det.x)
+                # Call for an opportunity to speak, check if it did.
+                did_notify = call_notify(score, det.x)
+
+                if did_notify:  # Mark that a recent notification was triggered.
+                    last_notification_time = time.time()
+                    last_notification_active = True
 
             time.sleep(max(0.0, 1.0 / FPS - 0.001))
 
