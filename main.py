@@ -59,15 +59,16 @@ def print_metrics():
 
 
 def extract_features(det):
-    """Simple 3-feature representation:
+    """Simple 4-feature representation:
 
     Returns:
-        [class_id, bbox_area, center_y]
+        [class_id, bbox_area, center_x, center_y]
     """
     class_id = det.class_id
     area = det.w * det.h
+    center_x = det.x + det.w / 2.0
     center_y = det.y + det.h / 2.0
-    return np.array([class_id, area, center_y], dtype=float)
+    return np.array([class_id, area, center_x, center_y], dtype=float)
 
 
 def update_models(n_new: int | None = None):
